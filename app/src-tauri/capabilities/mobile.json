@@ -1,17 +1,13 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "desktop",
-  "description": "Capability for desktop platforms",
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Capability for mobile platforms",
   "platforms": [
-    "macOS",
-    "windows",
-    "linux"
+    "android",
+    "iOS"
   ],
   "windows": [
-    "main",
-    "quicknote",
-    "quickai",
-    "quicktool"
+    "main"
   ],
   "permissions": [
     "core:default",
@@ -57,10 +53,6 @@
     },
     "upload:default",
     "process:allow-restart",
-    "process:default",
-    "autostart:allow-enable",
-    "autostart:allow-disable",
-    "autostart:allow-is-enabled",
-    "updater:default"
+    "process:default"
   ]
 }
