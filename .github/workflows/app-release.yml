@@ -150,6 +150,43 @@ jobs:
           echo "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin" >> $GITHUB_PATH
           nvcc -V
 
+      - name: Fix CUDA Visual Studio Integration (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          $cudaPath = "${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+          echo "CUDA Path: $cudaPath"
+
+          # Source: CUDA Visual Studio integration files
+          $sourceDir = "$cudaPath\extras\visual_studio_integration\MSBuildExtensions"
+          echo "Source: $sourceDir"
+
+          # Find Visual Studio installation
+          $vsPaths = @(
+            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise",
+            "C:\Program Files\Microsoft Visual Studio\2022\Community",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
+          )
+
+          foreach ($vsPath in $vsPaths) {
+            $destDir = "$vsPath\MSBuild\Microsoft\VC\v170\BuildCustomizations"
+            if (Test-Path $destDir) {
+              echo "Found VS at: $vsPath"
+              echo "Destination: $destDir"
+
+              if (Test-Path $sourceDir) {
+                echo "Copying CUDA integration files..."
+                Copy-Item "$sourceDir\*" $destDir -Force -Verbose
+                echo "Successfully copied CUDA integration files to $destDir"
+              } else {
+                echo "ERROR: Source directory not found: $sourceDir"
+              }
+              break
+            }
+          }
+
+          # Set environment variable for CMake to use CUDA toolset
+          echo "CMAKE_GENERATOR_TOOLSET=cuda=$cudaPath" >> $GITHUB_ENV
+
       - name: Fix version format for Windows MSI
         if: matrix.platform == 'windows-latest'
         run: |
@@ -194,6 +231,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          components: ${{ matrix.platform == 'windows-latest' && 'rustfmt' || '' }}
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
