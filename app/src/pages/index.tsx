@@ -10,7 +10,7 @@ import { useMediaQuery } from 'usehooks-ts';
 import { BlinkoAddButton } from '@/components/BlinkoAddButton';
 import { LoadingAndEmpty } from '@/components/Common/LoadingAndEmpty';
 import { useSearchParams } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import dayjs from '@/lib/dayjs';
 import { NoteType } from '@shared/lib/types';
 import { Icon } from '@/components/Common/Iconify/icons';
@@ -36,6 +36,7 @@ const Home = observer(() => {
   const isTrashView = searchParams.get('path') === 'trash';
   const isAllView = searchParams.get('path') === 'all';
   const [localNotes, setLocalNotes] = useState<any[]>([]);
+  const isDraggingRef = useRef(false);
 
   const currentListState = useMemo(() => {
     if (isNotesView) {
@@ -53,10 +54,12 @@ const Home = observer(() => {
     }
   }, [isNotesView, isTodoView, isArchivedView, isTrashView, isAllView, blinko]);
 
-  // Update local notes when the list changes
-  useMemo(() => {
-    if (currentListState.value) {
-      setLocalNotes(currentListState.value);
+  // Update local notes when the list changes (but not during drag operations)
+  useEffect(() => {
+    if (currentListState.value && !isDraggingRef.current) {
+      // Sort by sortOrder to maintain the correct order from the database
+      const sortedNotes = [...currentListState.value].sort((a, b) => a.sortOrder - b.sortOrder);
+      setLocalNotes(sortedNotes);
     }
   }, [currentListState.value]);
 
@@ -81,24 +84,40 @@ const Home = observer(() => {
       return;
     }
 
+    isDraggingRef.current = true;
+
     const oldIndex = localNotes.findIndex((note) => note.id === active.id);
     const newIndex = localNotes.findIndex((note) => note.id === over.id);
 
     const newNotes = arrayMove(localNotes, oldIndex, newIndex);
-    setLocalNotes(newNotes);
 
-    // Update sort order in database
-    const updates = newNotes.map((note, index) => ({
-      id: note.id,
+    // Optimistically update the UI with new sortOrder values
+    const updatedNotes = newNotes.map((note, index) => ({
+      ...note,
       sortOrder: index,
+    }));
+    setLocalNotes(updatedNotes);
+
+    // Prepare updates for the server
+    const updates = updatedNotes.map((note) => ({
+      id: note.id,
+      sortOrder: note.sortOrder,
     }));
 
     try {
-      await api.note.updateNotesOrder.mutate({ updates });
+      await api.notes.updateNotesOrder.mutate({ updates });
+      // Wait a bit longer for the store to refresh with updated data
+      setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 2000);
     } catch (error) {
       console.error('Failed to update notes order:', error);
+      isDraggingRef.current = false;
       // Revert on error
-      setLocalNotes(currentListState.value || []);
+      if (currentListState.value) {
+        const sortedNotes = [...currentListState.value].sort((a, b) => a.sortOrder - b.sortOrder);
+        setLocalNotes(sortedNotes);
+      }
     }
   };
 
