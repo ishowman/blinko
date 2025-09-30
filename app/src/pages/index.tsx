@@ -10,10 +10,13 @@ import { useMediaQuery } from 'usehooks-ts';
 import { BlinkoAddButton } from '@/components/BlinkoAddButton';
 import { LoadingAndEmpty } from '@/components/Common/LoadingAndEmpty';
 import { useSearchParams } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import dayjs from '@/lib/dayjs';
 import { NoteType } from '@shared/lib/types';
 import { Icon } from '@/components/Common/Iconify/icons';
+import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { api } from '@/lib/trpc';
 
 interface TodoGroup {
   displayDate: string;
@@ -32,6 +35,7 @@ const Home = observer(() => {
   const isArchivedView = searchParams.get('path') === 'archived';
   const isTrashView = searchParams.get('path') === 'trash';
   const isAllView = searchParams.get('path') === 'all';
+  const [localNotes, setLocalNotes] = useState<any[]>([]);
 
   const currentListState = useMemo(() => {
     if (isNotesView) {
@@ -48,6 +52,55 @@ const Home = observer(() => {
       return blinko.blinkoList;
     }
   }, [isNotesView, isTodoView, isArchivedView, isTrashView, isAllView, blinko]);
+
+  // Update local notes when the list changes
+  useMemo(() => {
+    if (currentListState.value) {
+      setLocalNotes(currentListState.value);
+    }
+  }, [currentListState.value]);
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = localNotes.findIndex((note) => note.id === active.id);
+    const newIndex = localNotes.findIndex((note) => note.id === over.id);
+
+    const newNotes = arrayMove(localNotes, oldIndex, newIndex);
+    setLocalNotes(newNotes);
+
+    // Update sort order in database
+    const updates = newNotes.map((note, index) => ({
+      id: note.id,
+      sortOrder: index,
+    }));
+
+    try {
+      await api.note.updateNotesOrder.mutate({ updates });
+    } catch (error) {
+      console.error('Failed to update notes order:', error);
+      // Revert on error
+      setLocalNotes(currentListState.value || []);
+    }
+  };
 
   const store = RootStore.Local(() => ({
     editorHeight: 30,
@@ -150,20 +203,31 @@ const Home = observer(() => {
             </div>
           ) : (
             <>
-              <Masonry
-                breakpointCols={{
-                  default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
-                  1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
-                  768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
-                }}
-                className="card-masonry-grid"
-                columnClassName="card-masonry-grid_column">
-                {
-                  currentListState?.value?.map(i => {
-                    return <BlinkoCard key={i.id} blinkoItem={i} />
-                  })
-                }
-              </Masonry>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={localNotes.map(note => note.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <Masonry
+                    breakpointCols={{
+                      default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
+                      1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
+                      768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
+                    }}
+                    className="card-masonry-grid"
+                    columnClassName="card-masonry-grid_column">
+                    {
+                      localNotes?.map(i => {
+                        return <BlinkoCard key={i.id} blinkoItem={i} isDraggable={true} />
+                      })
+                    }
+                  </Masonry>
+                </SortableContext>
+              </DndContext>
             </>
           )}
 
