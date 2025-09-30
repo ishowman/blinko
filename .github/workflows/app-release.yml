@@ -117,8 +117,14 @@ jobs:
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04' # Linux Platform
             args: ''
-          - platform: 'windows-latest' # Windows Platform
+          - platform: 'windows-latest' # Windows Platform (CPU)
             args: ''
+            features: '--features whisper-cpu'
+            variant: 'cpu'
+          - platform: 'windows-latest' # Windows Platform (CUDA)
+            args: ''
+            features: '--features whisper-cuda'
+            variant: 'cuda'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -132,8 +138,8 @@ jobs:
           name: tauri-config
           path: app/src-tauri/
 
-      - name: Install CUDA Toolkit (Windows)
-        if: matrix.platform == 'windows-latest'
+      - name: Install CUDA Toolkit (Windows CUDA)
+        if: matrix.platform == 'windows-latest' && matrix.variant == 'cuda'
         uses: Jimver/cuda-toolkit@v0.2.24
         id: cuda-toolkit
         with:
@@ -141,8 +147,8 @@ jobs:
           method: 'network'
           sub-packages: '[ "nvcc", "cudart", "cublas", "cublas_dev", "curand", "curand_dev", "visual_studio_integration", "thrust" ]'
 
-      - name: Set CUDA environment variables (Windows)
-        if: matrix.platform == 'windows-latest'
+      - name: Set CUDA environment variables (Windows CUDA)
+        if: matrix.platform == 'windows-latest' && matrix.variant == 'cuda'
         run: |
           echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
           echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
@@ -150,8 +156,9 @@ jobs:
           echo "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin" >> $GITHUB_PATH
           nvcc -V
 
-      - name: Fix CUDA Visual Studio Integration (Windows)
-        if: matrix.platform == 'windows-latest'
+
+      - name: Fix CUDA Visual Studio Integration (Windows CUDA)
+        if: matrix.platform == 'windows-latest' && matrix.variant == 'cuda'
         run: |
           $cudaPath = "${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           echo "CUDA Path: $cudaPath"
@@ -253,6 +260,14 @@ jobs:
           bun install
           cd app && bun install
 
+
+      # Copy CUDA config for CUDA builds (with installer checks)
+      - name: Use CUDA config (Windows CUDA)
+        if: matrix.platform == 'windows-latest' && matrix.variant == 'cuda'
+        run: |
+          Copy-Item "app\src-tauri\tauri.cuda.conf.json" "app\src-tauri\tauri.conf.json" -Force
+          echo "Using CUDA configuration with installer CUDA detection"
+
       # Using official Tauri Action to build and publish
       - name: Build and Publish Desktop App
         uses: tauri-apps/tauri-action@v0
@@ -263,9 +278,9 @@ jobs:
         with:
           projectPath: 'app'
           tauriScript: '../node_modules/.bin/tauri'
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} ${{ matrix.features || '' }}
           tagName: ${{ needs.set-version.outputs.version }}
-          releaseName: Blinko ${{ needs.set-version.outputs.version }}
+          releaseName: Blinko ${{ needs.set-version.outputs.version }}${{ matrix.variant && format(' ({0})', matrix.variant) || '' }}
           releaseBody: "Under construction, full changelog will be updated after build completion..."
           releaseDraft: false
           prerelease: false

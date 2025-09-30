@@ -36,7 +36,9 @@
       "Bash(find:*)",
       "WebFetch(domain:crates.io)",
       "WebFetch(domain:lib.rs)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(del \"e:\\code\\blinko\\app\\src-tauri\\tauri.cuda.conf.json\")",
+      "Bash(del \"e:\\code\\blinko\\app\\src-tauri\\wix-template.wxs\")"
     ],
     "deny": [],
     "ask": []
