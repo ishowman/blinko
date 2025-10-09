@@ -743,5 +743,6 @@
   "voice-recognition-hotkey": "Spraakopname sneltoets",
   "local-voice-recognition": "lokale spraaktranscriptie",
   "cuda-acceleration": "CUDA-versnelling",
-  "voice-tip": "Houd de sneltoets ingedrukt om te spreken en voer spraak-naar-tekst uit. Wanneer je loslaat, wordt de getranscribeerde inhoud in het tekstvak ingevoegd."
+  "voice-tip": "Houd de sneltoets ingedrukt om te spreken en voer spraak-naar-tekst uit. Wanneer je loslaat, wordt de getranscribeerde inhoud in het tekstvak ingevoegd.",
+  "dragging": "Bezig met slepen..."
 }

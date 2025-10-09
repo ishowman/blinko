@@ -20,8 +20,6 @@ import { AvatarAccount, SimpleCommentList } from "./commentButton";
 import { PluginApiStore } from "@/store/plugin/pluginApiStore";
 import { PluginRender } from "@/store/plugin/pluginRender";
 import { useLocation } from "react-router-dom";
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 
 export type BlinkoItem = Note & {
@@ -40,34 +38,15 @@ interface BlinkoCardProps {
   glassEffect?: boolean;
   withoutHoverAnimation?: boolean;
   withoutBoxShadow?: boolean;
-  isDraggable?: boolean;
 }
 
-export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, glassEffect = false, forceBlog = false, withoutBoxShadow = false, withoutHoverAnimation = false, className, defaultExpanded = false, isDraggable = false }: BlinkoCardProps) => {
+export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, glassEffect = false, forceBlog = false, withoutBoxShadow = false, withoutHoverAnimation = false, className, defaultExpanded = false }: BlinkoCardProps) => {
   const isPc = useMediaQuery('(min-width: 768px)');
   const blinko = RootStore.Get(BlinkoStore);
   const pluginApi = RootStore.Get(PluginApiStore);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const { pathname } = useLocation();
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: blinkoItem.id!,
-    disabled: !isDraggable || isExpanded || blinko.isMultiSelectMode
-  });
-
-  const style = isDraggable ? {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  } : {};
-
+  
   useHistoryBack({
     state: isExpanded,
     onStateChange: () => setIsExpanded(false),
@@ -122,9 +101,6 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
       {(() => {
         const cardContent = (
           <div
-            ref={isDraggable ? setNodeRef : undefined}
-            style={style}
-            {...(isDraggable && !isExpanded && !blinko.isMultiSelectMode ? { ...attributes, ...listeners } : {})}
             {...(!isShareMode && {
               onContextMenu: handleContextMenu,
               onDoubleClick: handleDoubleClick
@@ -140,7 +116,6 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
                 ${isPc && !isExpanded && !blinkoItem.isShare && !withoutHoverAnimation ? 'hover:translate-y-1' : ''}
                 ${blinkoItem.isBlog ? 'cursor-pointer' : ''}
                 ${blinko.curMultiSelectIds?.includes(blinkoItem.id!) ? 'border-2 border-primary' : ''}
-                ${isDragging ? 'cursor-grabbing' : isDraggable && !isExpanded ? 'cursor-grab' : ''}
                 ${className}
               `}
             >

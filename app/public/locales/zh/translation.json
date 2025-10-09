@@ -808,5 +808,6 @@
   "audio-tips": "长按快捷键录入，松开插入文本框中",
   "local-voice-recognition": "本地语音转写",
   "cuda-acceleration": "CUDA加速",
-  "voice-tip": "长按快捷键说话，进行语音转写，松开的时候会将转写内容插入到文本框中"
+  "voice-tip": "长按快捷键说话，进行语音转写，松开的时候会将转写内容插入到文本框中",
+  "dragging": "正在拖拽..."
 }

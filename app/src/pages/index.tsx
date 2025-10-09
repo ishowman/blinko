@@ -10,13 +10,12 @@ import { useMediaQuery } from 'usehooks-ts';
 import { BlinkoAddButton } from '@/components/BlinkoAddButton';
 import { LoadingAndEmpty } from '@/components/Common/LoadingAndEmpty';
 import { useSearchParams } from 'react-router-dom';
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import dayjs from '@/lib/dayjs';
 import { NoteType } from '@shared/lib/types';
 import { Icon } from '@/components/Common/Iconify/icons';
-import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { api } from '@/lib/trpc';
+import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core';
+import { useDragCard, DraggableBlinkoCard } from '@/hooks/useDragCard';
 
 interface TodoGroup {
   displayDate: string;
@@ -35,8 +34,8 @@ const Home = observer(() => {
   const isArchivedView = searchParams.get('path') === 'archived';
   const isTrashView = searchParams.get('path') === 'trash';
   const isAllView = searchParams.get('path') === 'all';
-  const [localNotes, setLocalNotes] = useState<any[]>([]);
-  const isDraggingRef = useRef(false);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [insertPosition, setInsertPosition] = useState<number | null>(null);
 
   const currentListState = useMemo(() => {
     if (isNotesView) {
@@ -54,72 +53,14 @@ const Home = observer(() => {
     }
   }, [isNotesView, isTodoView, isArchivedView, isTrashView, isAllView, blinko]);
 
-  // Update local notes when the list changes (but not during drag operations)
-  useEffect(() => {
-    if (currentListState.value && !isDraggingRef.current) {
-      // Sort by sortOrder to maintain the correct order from the database
-      const sortedNotes = [...currentListState.value].sort((a, b) => a.sortOrder - b.sortOrder);
-      setLocalNotes(sortedNotes);
-    }
-  }, [currentListState.value]);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    })
-  );
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    isDraggingRef.current = true;
-
-    const oldIndex = localNotes.findIndex((note) => note.id === active.id);
-    const newIndex = localNotes.findIndex((note) => note.id === over.id);
-
-    const newNotes = arrayMove(localNotes, oldIndex, newIndex);
-
-    // Optimistically update the UI with new sortOrder values
-    const updatedNotes = newNotes.map((note, index) => ({
-      ...note,
-      sortOrder: index,
-    }));
-    setLocalNotes(updatedNotes);
-
-    // Prepare updates for the server
-    const updates = updatedNotes.map((note) => ({
-      id: note.id,
-      sortOrder: note.sortOrder,
-    }));
-
-    try {
-      await api.notes.updateNotesOrder.mutate({ updates });
-      // Wait a bit longer for the store to refresh with updated data
-      setTimeout(() => {
-        isDraggingRef.current = false;
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to update notes order:', error);
-      isDraggingRef.current = false;
-      // Revert on error
-      if (currentListState.value) {
-        const sortedNotes = [...currentListState.value].sort((a, b) => a.sortOrder - b.sortOrder);
-        setLocalNotes(sortedNotes);
-      }
-    }
-  };
+  // Use drag card hook only for non-todo views
+  const { localNotes, sensors, setLocalNotes, handleDragStart, handleDragEnd, handleDragOver } = useDragCard({
+    notes: isTodoView ? [] : currentListState.value,
+    activeId,
+    setActiveId,
+    insertPosition,
+    setInsertPosition
+  });
 
   const store = RootStore.Local(() => ({
     editorHeight: 30,
@@ -225,27 +166,41 @@ const Home = observer(() => {
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
               >
-                <SortableContext
-                  items={localNotes.map(note => note.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <Masonry
-                    breakpointCols={{
-                      default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
-                      1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
-                      768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
-                    }}
-                    className="card-masonry-grid"
-                    columnClassName="card-masonry-grid_column">
-                    {
-                      localNotes?.map(i => {
-                        return <BlinkoCard key={i.id} blinkoItem={i} isDraggable={true} />
-                      })
-                    }
-                  </Masonry>
-                </SortableContext>
+                <Masonry
+                  breakpointCols={{
+                    default: blinko.config?.value?.largeDeviceCardColumns ? Number(blinko.config?.value?.largeDeviceCardColumns) : 2,
+                    1280: blinko.config?.value?.mediumDeviceCardColumns ? Number(blinko.config?.value?.mediumDeviceCardColumns) : 2,
+                    768: blinko.config?.value?.smallDeviceCardColumns ? Number(blinko.config?.value?.smallDeviceCardColumns) : 1
+                  }}
+                  className="card-masonry-grid"
+                  columnClassName="card-masonry-grid_column">
+                  {
+                    localNotes?.map((i, index) => {
+                      const showInsertLine = insertPosition === i.id && activeId !== i.id;
+                      return (
+                        <DraggableBlinkoCard
+                          key={i.id}
+                          blinkoItem={i}
+                          showInsertLine={showInsertLine}
+                          insertPosition="top"
+                        />
+                      );
+                    })
+                  }
+                </Masonry>
+                <DragOverlay>
+                  {activeId ? (
+                    <div className="rotate-3 scale-105 opacity-90 max-w-sm shadow-xl">
+                      <BlinkoCard
+                        blinkoItem={localNotes.find(n => n.id === activeId)}
+                      />
+                    </div>
+                  ) : null}
+                </DragOverlay>
               </DndContext>
             </>
           )}

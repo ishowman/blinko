@@ -38,7 +38,11 @@
       "WebFetch(domain:lib.rs)",
       "Bash(cat:*)",
       "Bash(del \"e:\\code\\blinko\\app\\src-tauri\\tauri.cuda.conf.json\")",
-      "Bash(del \"e:\\code\\blinko\\app\\src-tauri\\wix-template.wxs\")"
+      "Bash(del \"e:\\code\\blinko\\app\\src-tauri\\wix-template.wxs\")",
+      "Bash(del \"E:\\code\\blinko\\app\\src\\hooks\\useDragCard.ts\")",
+      "Bash(gh pr list)",
+      "Bash(gh pr view 933)",
+      "Bash(gh pr comment 933 --body \"$(cat <<''EOF''\nThank you so much for implementing this drag and drop feature! This is a really valuable addition to Blinko that many users have been looking for.\n\nI really appreciate the work you put into this. As we were testing and refining the implementation, we encountered a couple of challenges that we''ve been working to resolve:\n\n1. **Text Selection Conflict**: The original drag functionality interfered with users'' ability to select and copy text from notes. We''ve modified this to use a long-press approach (250ms delay) so users can still select text normally, and only activate drag mode when they press and hold.\n\n2. **Masonry Layout Issues During Drag**: We found that the waterfall/masonry layout had some stability problems during drag operations. We''ve been working on fixes to ensure the layout remains stable and provides good visual feedback during the drag process.\n\nThese changes help maintain the balance between the new drag functionality and the existing user experience for text interaction. The foundation you built here is excellent, and these refinements will make it even better for users.\n\nThanks again for your great work on this feature! 🎉\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

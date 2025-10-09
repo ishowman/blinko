@@ -729,5 +729,6 @@
   "audio-tips": "Pressione e segure a tecla de atalho para gravar, solte para inserir na caixa de texto.",
   "voice-recognition-hotkey": "Teclas de atalho para entrada de voz",
   "local-voice-recognition": "Transcrição de voz local",
-  "cuda-acceleration": "Aceleração CUDA"
+  "cuda-acceleration": "Aceleração CUDA",
+  "dragging": "Arrastando..."
 }

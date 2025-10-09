@@ -736,5 +736,6 @@
   "voice-recognition-hotkey": "Raccourci de saisie vocale",
   "local-voice-recognition": "Transcription vocale locale",
   "cuda-acceleration": "Accélération CUDA",
-  "voice-tip": "Maintenez enfoncé le raccourci pour parler et effectuer la transcription vocale. Lorsque vous relâchez, le contenu transcrit sera inséré dans la zone de texte."
+  "voice-tip": "Maintenez enfoncé le raccourci pour parler et effectuer la transcription vocale. Lorsque vous relâchez, le contenu transcrit sera inséré dans la zone de texte.",
+  "dragging": "En train de glisser..."
 }

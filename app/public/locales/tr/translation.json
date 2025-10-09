@@ -736,5 +736,6 @@
   "voice-recognition-hotkey": "Ses kaydı kısayol tuşu",
   "local-voice-recognition": "Yerel ses dökümü",
   "cuda-acceleration": "CUDA hızlandırma",
-  "voice-tip": "Kısayol tuşuna uzun basarak konuşun, sesli diktat yapın, bıraktığınızda diktat içeriği metin kutusuna eklenecektir."
+  "voice-tip": "Kısayol tuşuna uzun basarak konuşun, sesli diktat yapın, bıraktığınızda diktat içeriği metin kutusuna eklenecektir.",
+  "dragging": "Sürükleniyor..."
 }
