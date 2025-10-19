@@ -449,7 +449,6 @@
   "sign-in-with-provider": "Zaloguj się za pomocą {{ provider }}",
   "community": "Społeczność",
   "theme-color": "Kolor motywu",
-  "rest-user-info": "Zresetuj informacje o użytkowniku",
   "link-account": "Połącz konto",
   "select-account": "Wybierz konto",
   "link-account-warning": "Proszę pamiętać, że po połączeniu kont bieżące dane nie zostaną zsynchronizowane z połączonym kontem.",

@@ -459,7 +459,6 @@
   "sign-in-with-provider": "Sign in with {{ provider }}",
   "community": "Community",
   "theme-color": "Theme Color",
-  "rest-user-info": "Rest User Info",
   "link-account": "Link Account",
   "select-account": "Select Account",
   "link-account-warning": "Please note that if you link your accounts, any data from the current account will not be synced to the linked account.",
