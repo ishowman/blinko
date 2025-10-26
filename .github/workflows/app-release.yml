@@ -283,7 +283,7 @@ jobs:
         with:
           projectPath: 'app'
           tauriScript: '../node_modules/.bin/tauri'
-          args: ${{ matrix.args }} ${{ matrix.features || '' }}
+          args: ''
           tagName: ${{ needs.set-version.outputs.version }}
           releaseName: Blinko ${{ needs.set-version.outputs.version }}${{ matrix.variant && format(' ({0})', matrix.variant) || '' }}
           releaseBody: "Under construction, full changelog will be updated after build completion..."
