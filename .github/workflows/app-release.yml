@@ -261,7 +261,7 @@ jobs:
           cd app && bun install
 
       - name: Install Tauri CLI (for consistency with Android build)
-        run: cargo install tauri-cli --version "2.5.0"
+        run: cargo install tauri-cli --version "2.8.4"
 
       # Copy CUDA config for CUDA builds (with installer checks)
       - name: Use CUDA config (Windows CUDA)
@@ -370,7 +370,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "2.5.0"
+        run: cargo install tauri-cli --version "2.8.4"
 
       - name: Upload Keystore File
         run: |
