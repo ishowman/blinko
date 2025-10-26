@@ -273,6 +273,34 @@ jobs:
           Copy-Item "app\src-tauri\tauri.cuda.conf.json" "app\src-tauri\tauri.conf.json" -Force
           echo "Using CUDA configuration with installer CUDA detection"
 
+      # Debug: Check environment and dependencies
+      - name: Debug Build Environment
+        run: |
+          echo "=== Build Environment Debug ==="
+          echo "Current directory: $(pwd)"
+          echo "Platform: ${{ runner.os }}"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Bun version: $(bun --version)"
+          echo "Rust version: $(rustc --version)"
+          echo "Cargo version: $(cargo --version)"
+          echo ""
+          echo "=== Tauri CLI Check ==="
+          if command -v ../node_modules/.bin/tauri >/dev/null 2>&1; then
+            echo "✓ Found Tauri CLI at: $(which ../node_modules/.bin/tauri 2>/dev/null || echo '../node_modules/.bin/tauri')"
+            ../node_modules/.bin/tauri --version || echo "Version check failed"
+          else
+            echo "✗ Tauri CLI not found at ../node_modules/.bin/tauri"
+          fi
+          echo ""
+          echo "=== Directory Listing ==="
+          ls -la ../node_modules/.bin/ | grep -i tauri || echo "No tauri binaries found"
+          echo ""
+          echo "=== Rust Dependencies Check ==="
+          cd app/src-tauri
+          cargo check --verbose || echo "Cargo check failed"
+          echo ""
+
       # Using official Tauri Action to build and publish
       - name: Build and Publish Desktop App
         uses: tauri-apps/tauri-action@v0
@@ -280,10 +308,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          RUST_BACKTRACE: 1
+          RUST_LOG: debug
+          CARGO_VERBOSE: 1
+        continue-on-error: false
         with:
           projectPath: 'app'
           tauriScript: '../node_modules/.bin/tauri'
-          args: ''
+          args: ${{ matrix.args }} --verbose'
           tagName: ${{ needs.set-version.outputs.version }}
           releaseName: Blinko ${{ needs.set-version.outputs.version }}${{ matrix.variant && format(' ({0})', matrix.variant) || '' }}
           releaseBody: "Under construction, full changelog will be updated after build completion..."
