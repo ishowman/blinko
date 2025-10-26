@@ -19,11 +19,6 @@ on:
         description: 'Tag Version (e.g. 1.0.0)'
         required: true
         type: string
-      disable-rust-cache:
-        description: 'Disable Rust build cache (useful for troubleshooting)'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   # Set version first
@@ -246,11 +241,10 @@ jobs:
           components: ${{ matrix.platform == 'windows-latest' && 'rustfmt' || '' }}
 
       - name: Rust Cache
-        if: github.event.inputs.disable-rust-cache != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: app/src-tauri
-          cache-on-failure: true
+          cache-on-failure: false
 
       - name: Cache Dependencies
         uses: actions/cache@v3
@@ -266,40 +260,13 @@ jobs:
           bun install
           cd app && bun install
 
+
       # Copy CUDA config for CUDA builds (with installer checks)
       - name: Use CUDA config (Windows CUDA)
         if: matrix.platform == 'windows-latest' && matrix.variant == 'cuda'
         run: |
           Copy-Item "app\src-tauri\tauri.cuda.conf.json" "app\src-tauri\tauri.conf.json" -Force
           echo "Using CUDA configuration with installer CUDA detection"
-
-      # Debug: Check environment and dependencies
-      - name: Debug Build Environment
-        run: |
-          echo "=== Build Environment Debug ==="
-          echo "Current directory: $(pwd)"
-          echo "Platform: ${{ runner.os }}"
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "Bun version: $(bun --version)"
-          echo "Rust version: $(rustc --version)"
-          echo "Cargo version: $(cargo --version)"
-          echo ""
-          echo "=== Tauri CLI Check ==="
-          if command -v ../node_modules/.bin/tauri >/dev/null 2>&1; then
-            echo "✓ Found Tauri CLI at: $(which ../node_modules/.bin/tauri 2>/dev/null || echo '../node_modules/.bin/tauri')"
-            ../node_modules/.bin/tauri --version || echo "Version check failed"
-          else
-            echo "✗ Tauri CLI not found at ../node_modules/.bin/tauri"
-          fi
-          echo ""
-          echo "=== Directory Listing ==="
-          ls -la ../node_modules/.bin/ | grep -i tauri || echo "No tauri binaries found"
-          echo ""
-          echo "=== Rust Dependencies Check ==="
-          cd app/src-tauri
-          cargo check --verbose || echo "Cargo check failed"
-          echo ""
 
       # Using official Tauri Action to build and publish
       - name: Build and Publish Desktop App
@@ -308,14 +275,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          RUST_BACKTRACE: 1
-          RUST_LOG: debug
-          CARGO_VERBOSE: 1
-        continue-on-error: false
         with:
           projectPath: 'app'
           tauriScript: '../node_modules/.bin/tauri'
-          args: ${{ matrix.args }} --verbose'
+          args: ${{ matrix.args }} ${{ matrix.features || '' }}
           tagName: ${{ needs.set-version.outputs.version }}
           releaseName: Blinko ${{ needs.set-version.outputs.version }}${{ matrix.variant && format(' ({0})', matrix.variant) || '' }}
           releaseBody: "Under construction, full changelog will be updated after build completion..."
@@ -367,11 +330,10 @@ jobs:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Rust Cache
-        if: github.event.inputs.disable-rust-cache != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: app/src-tauri
-          cache-on-failure: true
+          cache-on-failure: false
 
       - name: Cache Dependencies
         uses: actions/cache@v3
@@ -406,7 +368,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli
+        run: cargo install tauri-cli --version "^2.0.0-alpha"
 
       - name: Upload Keystore File
         run: |
@@ -534,7 +496,6 @@ jobs:
               console.log('Generated Chinese message');
             } catch (error) {
               console.error('Error calling OpenRouter API:', error.message);
-              // 如果API调用失败，使用默认消息
               const defaultMessage = `🚀 Blinko ${{ needs.set-version.outputs.version }} 已发布！\n\n📝 更新日志：\n${{ needs.generate-changelog.outputs.changelog }}\n\n📥 下载链接：\nhttps://github.com/${{ github.repository }}/releases/tag/${{ needs.set-version.outputs.version }}`;
               core.setOutput('message', defaultMessage);
             }
@@ -578,7 +539,6 @@ jobs:
               console.log('Generated English message');
             } catch (error) {
               console.error('Error calling OpenRouter API:', error.message);
-              // 如果API调用失败，使用默认消息
               const defaultMessage = `🚀 Blinko ${{ needs.set-version.outputs.version }} has been released!\n\n📝 Changelog:\n${{ needs.generate-changelog.outputs.changelog }}\n\n📥 Download:\nhttps://github.com/${{ github.repository }}/releases/tag/${{ needs.set-version.outputs.version }}`;
               core.setOutput('message', defaultMessage);
             }
