@@ -19,6 +19,11 @@ on:
         description: 'Tag Version (e.g. 1.0.0)'
         required: true
         type: string
+      disable-rust-cache:
+        description: 'Disable Rust cache (useful for troubleshooting build issues)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   # Set version first
@@ -241,10 +246,11 @@ jobs:
           components: ${{ matrix.platform == 'windows-latest' && 'rustfmt' || '' }}
 
       - name: Rust Cache
+        if: github.event.inputs.disable-rust-cache != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: app/src-tauri
-          cache-on-failure: false
+          cache-on-failure: true
 
       - name: Cache Dependencies
         uses: actions/cache@v3
@@ -329,10 +335,11 @@ jobs:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Rust Cache
+        if: github.event.inputs.disable-rust-cache != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: app/src-tauri
-          cache-on-failure: false
+          cache-on-failure: true
 
       - name: Cache Dependencies
         uses: actions/cache@v3
